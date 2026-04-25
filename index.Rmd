@@ -1,0 +1,327 @@
+---
+title: "Rationale for an FQHC Lookalike in Paulding County"
+author: "Tej Shah"
+date: "`r Sys.Date()`"
+output:
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: scroll
+    theme: cosmo
+---
+
+# Rationale
+
+```{css, echo=FALSE}
+.plotly.html-widget {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.html-widget {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.chart-wrapper {
+  width: 100%;
+}
+```
+
+```{r setup, include=FALSE}
+# setup code
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+
+library(htmlwidgets)
+library(tidyverse)
+library(plotly)
+library(DT)
+library(scales)
+library(dplyr)
+library(stringr)
+
+```
+
+```{r}
+# data loading 
+places_raw <- read_csv("CountiesCompareData_03202026.csv")
+```
+
+```{r}
+# data cleaning code
+places_clean <- places_raw %>%
+  mutate(
+    Measure = str_trim(Measure),
+    `Data Value` = as.numeric(`Data Value`)
+  ) %>%
+  select(Location, Measure, `Data Value`)
+
+# Optional: keep only the indicators most relevant to your FQHC story
+selected_measures <- c(
+  "Obesity among adults ",
+  "High blood pressure among adults ",
+  "Diagnosed diabetes among adults ",
+  "Depression among adults ",
+  "Current asthma among adults "
+)
+
+places_filtered <- places_clean %>%
+  filter(Measure %in% selected_measures)
+
+# Pivot Paulding and U.S. into columns
+places_wide <- places_clean %>%
+  pivot_wider(
+    names_from = Location,
+    values_from = `Data Value`,
+    values_fn = mean
+  ) %>%
+  rename(
+    paulding_value = Paulding,
+    us_value = `United States`
+  )
+```
+
+```{r}
+# Establishing benchmarks
+severe_benchmark <- tibble(
+  Measure = c(
+    "Obesity among adults",
+    "High blood pressure among adults",
+    "Diagnosed diabetes among adults",
+    "Depression among adults",
+    "Current asthma among adults"
+  ),
+  severe_benchmark = c(
+    24.5, 27.7, 7.8, 12.8, 8.3
+  )
+)
+
+analysis_df <- places_wide %>%
+  mutate(Measure = str_trim(Measure)) %>%
+  left_join(severe_benchmark, by = "Measure")
+```
+
+```{r}
+
+plot_df <- analysis_df %>%
+  transmute(
+    Measure = str_trim(Measure),
+    Paulding = as.numeric(paulding_value),
+    US = as.numeric(us_value)
+  ) %>%
+  filter(!is.na(Measure), !is.na(Paulding), !is.na(US)) %>%
+  distinct(Measure, .keep_all = TRUE) %>%
+  arrange(Measure) %>%
+  mutate(
+    dropdown_label = case_when(
+      str_detect(Measure, regex("high blood pressure", ignore_case = TRUE)) ~ "High BP",
+      str_detect(Measure, regex("diagnosed diabetes", ignore_case = TRUE)) ~ "Diabetes",
+      str_detect(Measure, regex("depression", ignore_case = TRUE)) ~ "Depression",
+      str_detect(Measure, regex("obesity", ignore_case = TRUE)) ~ "Obesity",
+      str_detect(Measure, regex("asthma", ignore_case = TRUE)) ~ "Asthma",
+      TRUE ~ if_else(nchar(Measure) > 28,
+                     paste0(substr(Measure, 1, 28), "..."),
+                     Measure)
+    )
+  )
+
+fig <- plot_ly()
+
+for (i in seq_len(nrow(plot_df))) {
+  fig <- fig %>%
+    add_trace(
+      x = c("Paulding", "US"),
+      y = c(plot_df$Paulding[i], plot_df$US[i]),
+      type = "bar",
+      visible = ifelse(i == 1, TRUE, FALSE),
+      marker = list(color = c("orange", "steelblue")),
+      text = paste0(round(c(plot_df$Paulding[i], plot_df$US[i]), 1), "%"),
+      textposition = "outside",
+      cliponaxis = FALSE,
+      hovertemplate = paste0(
+        "<b>", plot_df$Measure[i], "</b><br>",
+        "%{x}: %{y:.1f}%<extra></extra>"
+      ),
+      showlegend = FALSE
+    )
+}
+
+buttons <- lapply(seq_len(nrow(plot_df)), function(i) {
+  vis <- rep(FALSE, nrow(plot_df))
+  vis[i] <- TRUE
+  
+  list(
+    method = "update",
+    args = list(
+      list(visible = vis),
+      list(
+        title = list(
+          text = plot_df$Measure[i],
+          x = 0.5,
+          xanchor = "center"
+        )
+      )
+    ),
+    label = plot_df$dropdown_label[i]
+  )
+})
+
+fig %>%
+  layout(
+    title = list(
+      text = plot_df$Measure[1],
+      x = 0.5,
+      xanchor = "center"
+    ),
+    yaxis = list(
+      title = "Adults affected (%)",
+      ticksuffix = "%",
+      rangemode = "tozero",
+      automargin = TRUE
+    ),
+    updatemenus = list(
+      list(
+        type = "dropdown",
+        active = 0,
+        buttons = buttons,
+        x = 0.5,
+        y = 1.18,
+        xanchor = "center",
+        yanchor = "top",
+        direction = "down",
+        bgcolor = "white",
+        bordercolor = "gray",
+        font = list(size = 11)
+      )
+    ),
+    bargap = 0.45,
+    margin = list(l = 60, r = 30, t = 120, b = 70),
+    autosize = TRUE
+  ) %>%
+  config(responsive = TRUE)
+```
+
+Use the dropdown to compare Paulding County with the national estimate for each health measure.
+
+With the above visualization, the viewer can compare various health indicators in Paulding County, our area of interest with the national metrics in the U.S. Paulding's indicators compared to the US are highly variable and can be similar to, worse than, or better than the national average. However, for the most part and for the most important indicators such as CVD, diabetes, etc., Paulding is worse off suggesting that residents may face a greater burden of chronic disease and prevention-related health needs. The dropdown and hover features allow for open exploration for better planning on which services to cover and target.
+
+
+```{r}
+viz2_df <- analysis_df %>%
+  filter(Measure %in% c(
+    "High blood pressure among adults",
+    "Obesity among adults",
+    "Diagnosed diabetes among adults",
+    "Depression among adults",
+    "Current asthma among adults"
+  )) %>%
+  mutate(
+    Measure_short = case_when(
+      Measure == "High blood pressure among adults" ~ "High BP",
+      Measure == "Obesity among adults" ~ "Obesity",
+      Measure == "Diagnosed diabetes among adults" ~ "Diabetes",
+      Measure == "Depression among adults" ~ "Depression",
+      Measure == "Current asthma among adults" ~ "Asthma",
+      TRUE ~ str_trim(Measure)
+    )
+  ) %>%
+  transmute(
+    Measure = factor(
+      Measure_short,
+      levels = c("High BP", "Obesity", "Diabetes", "Depression", "Asthma")
+    ),
+    Full_Measure = str_trim(Measure),
+    Paulding = as.numeric(paulding_value),
+    Severe = as.numeric(severe_benchmark)
+  ) %>%
+  filter(!is.na(Paulding), !is.na(Severe), Severe != 0) %>%
+  mutate(
+    ratio_paulding_to_severe = Paulding / Severe,
+    pct_diff_paulding_vs_severe = ((Paulding - Severe) / Severe) * 100,
+    
+    hover_paulding = paste0(
+      "<b>", Full_Measure, "</b><br>",
+      "Group: Paulding<br>",
+      "Value: ", round(Paulding, 1), "%<br>",
+      "Severe benchmark: ", round(Severe, 1), "%<br>",
+      "Relative comparison: ", round(ratio_paulding_to_severe, 2), "x the severe benchmark<br>",
+      "Percent difference: ", round(pct_diff_paulding_vs_severe, 1), "%"
+    ),
+    
+    hover_severe = paste0(
+      "<b>", Full_Measure, "</b><br>",
+      "Group: Severe Benchmark<br>",
+      "Value: ", round(Severe, 1), "%<br>",
+      "Paulding: ", round(Paulding, 1), "%<br>",
+      "Paulding is ", round(ratio_paulding_to_severe, 2), "x this benchmark<br>",
+      "Percent difference: ", round(pct_diff_paulding_vs_severe, 1), "%"
+    )
+  ) %>%
+  arrange(Measure)
+
+plot_ly(viz2_df) %>%
+  add_trace(
+    x = ~Measure,
+    y = ~Paulding,
+    name = "Paulding",
+    type = "bar",
+    marker = list(color = "orange"),
+    text = ~paste0(round(Paulding, 1), "%"),
+    textposition = "outside",
+    hoverinfo = "text",
+    hovertext = ~hover_paulding
+  ) %>%
+  add_trace(
+    x = ~Measure,
+    y = ~Severe,
+    name = "Severe Benchmark",
+    type = "bar",
+    marker = list(color = "indianred"),
+    text = ~paste0(round(Severe, 1), "%"),
+    textposition = "outside",
+    hoverinfo = "text",
+    hovertext = ~hover_severe
+  ) %>%
+  layout(
+    title = list(
+      text = "Key Measures Compared with Severe Benchmarks",
+      x = 0.5,
+      xanchor = "center"
+    ),
+    barmode = "group",
+    xaxis = list(
+      title = "Health Measure",
+      tickfont = list(size = 13),
+      automargin = TRUE
+    ),
+    yaxis = list(
+      title = "Adults affected (%)",
+      ticksuffix = "%",
+      tickfont = list(size = 12),
+      titlefont = list(size = 14),
+      rangemode = "tozero",
+      automargin = TRUE
+    ),
+    legend = list(
+      orientation = "h",
+      x = 0.5,
+      xanchor = "center",
+      y = 1.15,
+      font = list(size = 12)
+    ),
+    margin = list(l = 60, r = 30, t = 110, b = 70),
+    autosize = TRUE
+  ) %>%
+  config(responsive = TRUE)
+```
+
+
+The above visualization now compares high yield health indicators that should be of priority in healthcare between Paulding and a severe benchmark established by the HRSA using UDS Data. The chart shows that Paulding County exceed their severe benchmark thresholds for all of these indicators, with especially notable gaps for obesity, high blood pressure, and depression. The hover tooltips make the differences more interpretable by showing both the raw percentages and how much higher Paulding is relative to the benchmark. This further highlights the need for an FQHC lookalike in Paulding County.
+
+
+### Project Importance
+
+This dashboard highlights key health and access-related needs in Paulding County as a rationale for a grant for a potential FQHC Look-Alike site. By comparing local indicators with national estimates and project benchmarks, the dashboard helps identify priority areas where expanded primary care, behavioral health, and enabling services could improve community health.
+
+# Dataset Description
+
+The dashboard uses publicly available county (Paulding County, GA) and national (USA) level health indicator data from CDC PLACES (https://places.cdc.gov/?view=county&locationIds=13223). The dataset includes model-based estimates for adult health outcomes and risk factors, including obesity, high blood pressure, diagnosed diabetes, depression, and current asthma. These estimates are generated from national surveillance data, including the Behavioral Risk Factor Surveillance System, rather than from a new survey collected specifically for this project. The study population is adults aged 18 years and older living in Paulding County, Georgia, with comparison values representing adults in the United States. The dashboard uses the most recent CDC PLACES county-level estimates available in the dataset downloaded for this project.
