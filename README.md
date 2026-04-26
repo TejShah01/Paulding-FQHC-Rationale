@@ -16,7 +16,17 @@ https://tejshah01.github.io/Paulding-FQHC-Rationale/
 
 ## Source Code
 
-The main dashboard source code is contained in `index.Rmd`.
+## Source Code
+
+The source code for this dashboard is included in `index.Rmd`. 
+
+The first interactive Plotly widget is generated in the code chunk beginning with `plot_df <- analysis_df %>%`.
+The source code for this can be found here:-
+https://github.com/TejShah01/Paulding-FQHC-Rationale/blob/dd4997691299804b4e42d8941610111494808059/index.Rmd#L104-L199
+
+The second interactive Plotly widget is generated in the code chunk beginning with `viz2_df <- analysis_df %>%`.
+The source code for this can be found here:-
+https://github.com/TejShah01/Paulding-FQHC-Rationale/blob/dd4997691299804b4e42d8941610111494808059/index.Rmd#L210-L315
 
 ## Data Source
 
