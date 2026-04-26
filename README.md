@@ -12,8 +12,7 @@ The dashboard focuses on indicators such as obesity, high blood pressure, diagno
 ## Dashboard
 
 The live dashboard can be viewed here:
-
-[Insert GitHub Pages dashboard link here]
+https://tejshah01.github.io/Paulding-FQHC-Rationale/
 
 ## Source Code
 

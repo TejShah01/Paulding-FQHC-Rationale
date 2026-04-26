@@ -55,7 +55,6 @@ places_clean <- places_raw %>%
   ) %>%
   select(Location, Measure, `Data Value`)
 
-# Optional: keep only the indicators most relevant to your FQHC story
 selected_measures <- c(
   "Obesity among adults ",
   "High blood pressure among adults ",
@@ -200,9 +199,11 @@ fig %>%
   config(responsive = TRUE)
 ```
 
-Use the dropdown to compare Paulding County with the national estimate for each health measure.
+Use the dropdown to compare Paulding County with the national estimate for each selected health measure.
 
-With the above visualization, the viewer can compare various health indicators in Paulding County, our area of interest with the national metrics in the U.S. Paulding's indicators compared to the US are highly variable and can be similar to, worse than, or better than the national average. However, for the most part and for the most important indicators such as CVD, diabetes, etc., Paulding is worse off suggesting that residents may face a greater burden of chronic disease and prevention-related health needs. The dropdown and hover features allow for open exploration for better planning on which services to cover and target.
+In the section above, the viewer can compare various health indicators in Paulding County to the U.S. 
+
+**Key takeaways:** Paulding's indicators compared to the US are highly variable and can be similar to, worse than, or better than the national average. However, for the most part and for the most important indicators such as CVD, diabetes, etc., Paulding is worse off, suggesting that residents may face a greater burden of chronic disease and prevention-related health needs.
 
 
 ```{r}
@@ -314,9 +315,9 @@ plot_ly(viz2_df) %>%
   config(responsive = TRUE)
 ```
 
+This chart compares Paulding County’s metrics with severe benchmark thresholds established by the HRSA (Health Resources and Services Administration) using UDS (Uniform Data System) Data for selected high-priority health indicators.
 
-The above visualization now compares high yield health indicators that should be of priority in healthcare between Paulding and a severe benchmark established by the HRSA using UDS Data. The chart shows that Paulding County exceed their severe benchmark thresholds for all of these indicators, with especially notable gaps for obesity, high blood pressure, and depression. The hover tooltips make the differences more interpretable by showing both the raw percentages and how much higher Paulding is relative to the benchmark. This further highlights the need for an FQHC lookalike in Paulding County.
-
+**Key takeaways:** Paulding County exceeds the severe benchmark for each selected measure, with particularly notable gaps for obesity, high blood pressure, and depression. These patterns strengthen the rationale for an FQHC Look-Alike model that includes primary care, behavioral health, and chronic disease prevention services.
 
 ### Project Importance
 
@@ -325,3 +326,5 @@ This dashboard highlights key health and access-related needs in Paulding County
 # Dataset Description
 
 The dashboard uses publicly available county (Paulding County, GA) and national (USA) level health indicator data from CDC PLACES (https://places.cdc.gov/?view=county&locationIds=13223). The dataset includes model-based estimates for adult health outcomes and risk factors, including obesity, high blood pressure, diagnosed diabetes, depression, and current asthma. These estimates are generated from national surveillance data, including the Behavioral Risk Factor Surveillance System, rather than from a new survey collected specifically for this project. The study population is adults aged 18 years and older living in Paulding County, Georgia, with comparison values representing adults in the United States. The dashboard uses the most recent CDC PLACES county-level estimates available in the dataset downloaded for this project.
+
+The source code for this dashboard is available at https://github.com/TejShah01/Paulding-FQHC-Rationale.
